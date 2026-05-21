@@ -1,0 +1,159 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PredictBol</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: #0a1424;
+            color: white;
+            font-family: 'Bebas Neue', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .header {
+            background: #111827;
+            padding: 25px;
+            text-align: center;
+        }
+        .header img { width: 140px; }
+        .header h1 { 
+            font-size: 48px; 
+            margin: 8px 0 0 0; 
+        }
+        .container {
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 0 15px;
+        }
+        .card {
+            background: #1e293b;
+            border-radius: 16px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        h2 { text-align: center; font-size: 36px; margin-bottom: 20px; }
+
+        input[name="username"] {
+            width: 60%; max-width: 400px; margin: 0 auto 20px auto; display: block;
+            padding: 12px; font-size: 20px; text-align: center; border-radius: 12px;
+        }
+        select { width: 100%; padding: 14px; font-size: 20px; text-align: center; border-radius: 12px; margin-bottom: 20px; }
+
+        .teams { display: flex; justify-content: center; gap: 50px; margin: 25px 0; }
+        .team img { 
+            width: 120px; height: 120px; object-fit: contain; 
+            background: #334155; padding: 10px; border-radius: 15px;
+        }
+        .vs { font-size: 42px; color: #22c55e; font-weight: bold; }
+        button {
+            background: #22c55e; color: white; border: none; padding: 16px;
+            font-size: 22px; border-radius: 12px; width: 100%; cursor: pointer;
+        }
+        .leaderboard-item {
+            background: #334155; padding: 14px 18px; margin: 8px 0;
+            border-radius: 12px; display: flex; justify-content: space-between;
+            font-size: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <img src="{% static 'leaderboard/images/trofeo.png' %}" alt="Trofeo">
+        <h1>PREDICTBOL</h1>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>HACER PREDICCIÓN</h2>
+            
+            <form method="POST">
+                {% csrf_token %}
+                
+                <input type="text" name="username" placeholder="Nombre" required>
+
+                <select name="match" id="match-select" required>
+                    <option value="">Selecciona un partido</option>
+                    {% for match in matches %}
+                        <option value="{{ match.id }}"
+                                data-team-a="{{ match.team_a }}"
+                                data-team-b="{{ match.team_b }}"
+                                data-logo-a="{% static 'leaderboard/images/' %}{{ match.logo_a }}"
+                                data-logo-b="{% static 'leaderboard/images/' %}{{ match.logo_b }}"
+                                {% if selected_match and selected_match.id == match.id %}selected{% endif %}>
+                            {{ match.team_a }} vs {{ match.team_b }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+                <div class="teams">
+                    <div class="team">
+                        <img src="{% static 'leaderboard/images/default.png' %}" id="logo-a">
+                        <h3 id="name-a">Equipo A</h3>
+                        <input type="number" name="predicted_team_a_score" min="0" value="0" required>
+                    </div>
+                    <div class="vs">VS</div>
+                    <div class="team">
+                        <img src="{% static 'leaderboard/images/default.png' %}" id="logo-b">
+                        <h3 id="name-b">Equipo B</h3>
+                        <input type="number" name="predicted_team_b_score" min="0" value="0" required>
+                    </div>
+                </div>
+                
+                <button type="submit">GUARDAR PREDICCIÓN</button>
+            </form>
+        </div>
+
+        <div class="card">
+            <h2 id="leaderboard-title">LEADERBOARD GENERAL</h2>
+            <div id="leaderboard-container">
+                {% for prediction in predictions %}
+                <div class="leaderboard-item" data-match-id="{{ prediction.match.id }}">
+                    <span><strong>{{ prediction.username }}</strong></span>
+                    <span>{{ prediction.predicted_team_a_score }} - {{ prediction.predicted_team_b_score }}</span>
+                    <span><strong>{{ prediction.points }} pts</strong></span>
+                </div>
+                {% empty %}
+                    <p style="text-align:center; color:#94a3b8;" id="no-predictions">Aún no hay predicciones</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const select = document.getElementById('match-select');
+        const title = document.getElementById('leaderboard-title');
+        const items = document.querySelectorAll('.leaderboard-item');
+
+        function updateLeaderboard() {
+            const selectedId = select.value;
+            const selectedText = select.options[select.selectedIndex].textContent;
+
+            title.textContent = selectedId ? `LEADERBOARD - ${selectedText}` : "LEADERBOARD GENERAL";
+
+            let visible = 0;
+            items.forEach(item => {
+                if (!selectedId || item.dataset.matchId === selectedId) {
+                    item.style.display = 'flex';
+                    visible++;
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        
+        select.addEventListener('change', updateLeaderboard);
+
+       
+        window.addEventListener('load', () => {
+            if (select.value) {
+                updateLeaderboard();
+            }
+        });
+    </script>
+</body>
+</html>
